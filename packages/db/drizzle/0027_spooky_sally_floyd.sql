@@ -1,0 +1,1 @@
+ALTER TABLE "database_services" ALTER COLUMN "database_name" SET DEFAULT 'openploy';

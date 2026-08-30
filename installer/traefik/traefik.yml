@@ -1,0 +1,38 @@
+# Static Traefik config, written once by the installer to /etc/openploy/traefik/traefik.yml.
+# Per-service routes are never defined here - see packages/traefik, which
+# renders one file per domain into providers.file.directory below.
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+  # Not bound to :80/:443 - reachable only on the platform_internal overlay
+  # network, and only ever proxied to by an authenticated, admin-only route
+  # inside the platform itself. Never expose this publicly.
+  traefik:
+    address: "127.0.0.1:8080"
+
+api:
+  dashboard: true
+  insecure: true # safe only because the "traefik" entrypoint above is not publicly reachable
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      storage: /etc/traefik/acme/acme.json
+      httpChallenge:
+        entryPoint: web
+
+log:
+  level: INFO

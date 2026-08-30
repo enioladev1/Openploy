@@ -1,0 +1,216 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786825971715,
+      "tag": "0000_worthless_tony_stark",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786828630482,
+      "tag": "0001_quiet_typhoid_mary",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786829230344,
+      "tag": "0002_awesome_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786834454616,
+      "tag": "0003_yellow_doorman",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786842465133,
+      "tag": "0004_flashy_mandrill",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786969216486,
+      "tag": "0005_wise_argent",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786980583475,
+      "tag": "0006_cynical_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786996110986,
+      "tag": "0007_slim_justice",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787005988540,
+      "tag": "0008_absent_azazel",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787016303971,
+      "tag": "0009_regular_starbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787016364208,
+      "tag": "0010_sticky_morlocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787066071664,
+      "tag": "0011_furry_punisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787067830825,
+      "tag": "0012_fancy_butterfly",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787068527578,
+      "tag": "0013_bitter_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787085170013,
+      "tag": "0014_sharp_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1787091674971,
+      "tag": "0015_nervous_toad_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1787098120023,
+      "tag": "0016_rainy_tiger_shark",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787163724142,
+      "tag": "0017_fluffy_misty_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787165619215,
+      "tag": "0018_noisy_shadowcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787359577486,
+      "tag": "0019_salty_bucky",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787499387470,
+      "tag": "0020_gray_thunderbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1787499939863,
+      "tag": "0021_curved_next_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1787505729794,
+      "tag": "0022_polite_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1787509293502,
+      "tag": "0023_smiling_wasp",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787516351671,
+      "tag": "0024_glossy_praxagora",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787521474005,
+      "tag": "0025_next_namorita",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787535341865,
+      "tag": "0026_complete_blizzard",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1787934408799,
+      "tag": "0027_spooky_sally_floyd",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1787961583265,
+      "tag": "0028_far_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788010791683,
+      "tag": "0029_platform_settings_versions",
+      "breakpoints": true
+    }
+  ]
+}

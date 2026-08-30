@@ -1,0 +1,1 @@
+ALTER TABLE "application_services" DROP COLUMN "port";

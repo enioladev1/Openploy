@@ -1,0 +1,1 @@
+ALTER TABLE "compose_services" ALTER COLUMN "source_type" DROP NOT NULL;

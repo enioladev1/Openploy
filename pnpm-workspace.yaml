@@ -1,0 +1,16 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+overrides:
+  # Vulnerable versions bundled internally by next@15.5.23 (no upstream fix
+  # released yet); forced up since next's own postcss/sharp aren't reachable
+  # via the app's own package.json deps. See security-review notes.
+  postcss: "^8.5.23"
+  sharp: "^0.35.0"
+allowBuilds:
+  cpu-features: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  ssh2: true
+  unrs-resolver: true

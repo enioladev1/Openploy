@@ -1,0 +1,76 @@
+import type { ComposeDocument, ComposeVolumeEntry } from "./types";
+
+const ALLOWED_TOP_LEVEL_KEYS = new Set(["version", "services", "networks", "volumes"]);
+const ALLOWED_CAP_ADD = new Set(["NET_BIND_SERVICE", "CHOWN", "SETUID", "SETGID"]);
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+function isHostBindMount(entry: ComposeVolumeEntry, declaredVolumes: Set<string>): boolean {
+  if (typeof entry === "string") {
+    const source = entry.split(":")[0] ?? "";
+    if (source.startsWith("/") || source.startsWith(".") || source.startsWith("~")) return true;
+    // A plain name not declared as a top-level named volume is rejected too -
+    // compose would otherwise silently create an anonymous volume, which we'd
+    // rather the user declare explicitly than have happen implicitly.
+    return !declaredVolumes.has(source);
+  }
+
+  if (entry.type === "bind") return true;
+  if (entry.type === "volume" || entry.type === undefined) {
+    if (!entry.source) return false; // anonymous volume, always safe
+    return !declaredVolumes.has(entry.source);
+  }
+  return true; // unknown type - fail closed
+}
+
+/**
+ * The primary defense against compose injection turning into host compromise.
+ * Every check here fails closed: anything not explicitly recognized as safe
+ * is rejected, not allowed through.
+ */
+export function validateComposeSafety(doc: ComposeDocument): ValidationResult {
+  const errors: string[] = [];
+
+  for (const key of Object.keys(doc)) {
+    // x-* extension fields are part of the Compose spec itself - inert data
+    // (commonly YAML anchors reused via `<<: *name`), never executed, so
+    // rejecting them breaks legitimate real-world compose files for no
+    // safety benefit.
+    if (!ALLOWED_TOP_LEVEL_KEYS.has(key) && !key.startsWith("x-")) {
+      errors.push(`Top-level key "${key}" is not allowed`);
+    }
+  }
+
+  const declaredVolumes = new Set(Object.keys(doc.volumes ?? {}));
+  const services = doc.services ?? {};
+
+  if (Object.keys(services).length === 0) {
+    errors.push("Compose file must declare at least one service");
+  }
+
+  for (const [serviceName, service] of Object.entries(services)) {
+    if (service.privileged) {
+      errors.push(`Service "${serviceName}" may not set privileged: true`);
+    }
+    if (service.network_mode === "host") {
+      errors.push(`Service "${serviceName}" may not use network_mode: host`);
+    }
+    for (const cap of service.cap_add ?? []) {
+      if (!ALLOWED_CAP_ADD.has(cap)) {
+        errors.push(`Service "${serviceName}" requests disallowed capability: ${cap}`);
+      }
+    }
+    for (const volume of service.volumes ?? []) {
+      if (isHostBindMount(volume, declaredVolumes)) {
+        errors.push(
+          `Service "${serviceName}" has a volume entry that resolves to a host bind mount or an undeclared volume: ${JSON.stringify(volume)}`,
+        );
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}

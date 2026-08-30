@@ -1,0 +1,1 @@
+ALTER TYPE "public"."db_engine" ADD VALUE 'clickhouse';

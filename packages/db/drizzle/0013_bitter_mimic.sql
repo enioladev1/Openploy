@@ -1,0 +1,1 @@
+ALTER TABLE "backup_storage_configs" ALTER COLUMN "endpoint" SET NOT NULL;

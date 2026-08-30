@@ -1,0 +1,23 @@
+{
+  "name": "openploy-paas",
+  "private": true,
+  "license": "Apache-2.0",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @openploy/db generate",
+    "db:migrate": "pnpm --filter @openploy/db migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.2"
+  }
+}

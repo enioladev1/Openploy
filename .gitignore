@@ -1,0 +1,36 @@
+node_modules/
+.pnpm-store/
+.turbo/
+dist/
+.next/
+.next-*/
+out/
+build/
+coverage/
+next-env.d.ts
+*.tsbuildinfo
+
+# env / secrets, never committed
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+master.key
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# os
+.DS_Store
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# agent instructions/local state, not for the public repo
+CLAUDE.md
+.claude/

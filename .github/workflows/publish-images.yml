@@ -1,0 +1,56 @@
+name: Publish images
+
+# Pushes to main only publish a per-commit tag - never :latest, which now
+# means "latest release", not "latest commit". Otherwise every push shows
+# up as an available update on every self-hosted instance the moment CI/CD
+# finishes, with no way to push freely without triggering it.
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: web
+            dockerfile: apps/web/Dockerfile
+          - name: agent
+            dockerfile: apps/agent/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.name }} (commit)
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/openploy-${{ matrix.name }}:${{ github.sha }}
+
+      - name: Build and push ${{ matrix.name }} (release)
+        if: github.event_name == 'release'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          build-args: OPENPLOY_VERSION=${{ github.event.release.tag_name }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/openploy-${{ matrix.name }}:latest
+            ghcr.io/${{ github.repository_owner }}/openploy-${{ matrix.name }}:${{ github.event.release.tag_name }}

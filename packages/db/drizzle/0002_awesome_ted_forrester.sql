@@ -1,0 +1,2 @@
+CREATE TYPE "public"."runtime_status" AS ENUM('unknown', 'pending', 'running', 'failed');--> statement-breakpoint
+ALTER TABLE "services" ADD COLUMN "runtime_status" "runtime_status" DEFAULT 'unknown' NOT NULL;

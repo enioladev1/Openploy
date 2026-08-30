@@ -1,0 +1,176 @@
+# The platform deploys itself through the same Swarm/Traefik machinery it
+# uses for user services (see the plan's installer section). Applied once by
+# install.sh via `docker stack deploy -c stack.yml openploy`, then left alone -
+# upgrades are a `docker service update --image ...` per service, not a
+# redeploy of this whole file, so it never collides with user-owned stacks.
+#
+# web and agent are pinned to the manager node: agent needs /var/run/docker.sock
+# and the master key file, both of which only exist on the host that ran the installer.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: openploy
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: openploy
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - platform_internal
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+  # No registry service here on purpose - it runs as a standalone container
+  # created by install.sh, NOT as a Swarm service. Build and push run through
+  # the host's own Docker daemon (via agent's mounted socket), which cannot
+  # resolve an overlay-network service name like "registry:5000", so the
+  # registry has to be reachable at a host address instead. Swarm's port model
+  # has no host-IP field at all, so a Swarm service can only ever publish on
+  # every interface - and registry:2 has no auth, so that would expose an
+  # open image registry publicly. A plain container can bind 127.0.0.1 only.
+
+  web:
+    image: "${OPENPLOY_WEB_IMAGE:-ghcr.io/enioladev1/openploy-web:latest}"
+    environment:
+      DATABASE_URL: "postgres://openploy:${POSTGRES_PASSWORD}@postgres:5432/openploy"
+      OPENPLOY_MASTER_KEY_FILE: /run/secrets/openploy_master_key
+      APP_BASE_URL: "${APP_BASE_URL}"
+      PLATFORM_PUBLIC_IP: "${PLATFORM_PUBLIC_IP}"
+      NODE_ENV: production
+      # Docker sets HOSTNAME to the container ID for every container, and
+      # Next's standalone server binds to $HOSTNAME instead of all interfaces
+      # if it's set - without this override the app is only reachable via
+      # that one container IP, never via localhost or the published port.
+      HOSTNAME: "0.0.0.0"
+    secrets:
+      - openploy_master_key
+    networks:
+      - platform_internal
+    ports:
+      - target: 3000
+        published: 3000
+        mode: host
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      replicas: 1
+      update_config:
+        parallelism: 1
+        # stop-first, not start-first: port 3000 is published with mode:host
+        # (bound directly to the node, not Swarm's mesh), so two containers
+        # can never both hold it on this single manager node - start-first
+        # deadlocks forever with "no suitable node".
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+
+  agent:
+    image: "${OPENPLOY_AGENT_IMAGE:-ghcr.io/enioladev1/openploy-agent:latest}"
+    environment:
+      DATABASE_URL: "postgres://openploy:${POSTGRES_PASSWORD}@postgres:5432/openploy"
+      OPENPLOY_MASTER_KEY_FILE: /run/secrets/openploy_master_key
+      # 127.0.0.1, not the "registry" service name - see registry's port comment above.
+      REGISTRY_HOST: "127.0.0.1:5000"
+      # Fallback only - notifications.ts prefers the DB-stored dashboard
+      # domain and only falls back to this during the brief bootstrap window
+      # before that row exists.
+      APP_BASE_URL: "${APP_BASE_URL}"
+      # Same defaults as this service's own `image:` above and web's - the
+      # self-update feature needs these strings to know what to check/pull/
+      # update, and must never hardcode a registry owner in application code.
+      OPENPLOY_WEB_IMAGE: "${OPENPLOY_WEB_IMAGE:-ghcr.io/enioladev1/openploy-web:latest}"
+      OPENPLOY_AGENT_IMAGE: "${OPENPLOY_AGENT_IMAGE:-ghcr.io/enioladev1/openploy-agent:latest}"
+      # Which GitHub repo's Releases the update check queries - same
+      # never-hardcode-the-owner reasoning as the two image vars above.
+      OPENPLOY_GITHUB_OWNER: "${OPENPLOY_GITHUB_OWNER:-enioladev1}"
+      OPENPLOY_GITHUB_REPO: "${OPENPLOY_GITHUB_REPO:-Openploy}"
+      WORKSPACE_DIR: /var/lib/openploy/builds
+      STACKS_DIR: /var/lib/openploy/stacks
+      TRAEFIK_DYNAMIC_CONFIG_DIR: /etc/traefik/dynamic
+      TRAEFIK_ACME_FILE: /etc/traefik/acme/acme.json
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+    secrets:
+      - openploy_master_key
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - openploy_builds:/var/lib/openploy/builds
+      - openploy_stacks:/var/lib/openploy/stacks
+      - traefik_dynamic:/etc/traefik/dynamic
+      - traefik_acme:/etc/traefik/acme:ro
+    networks:
+      - platform_internal
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      replicas: 1
+      update_config:
+        parallelism: 1
+        # Explicit, not relying on Swarm's undocumented default: agent
+        # updating itself (self-update feature) is the highest-risk operation
+        # this platform performs, so an automatic rollback if the new image
+        # crash-loops is worth having, same as web already gets.
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1024M
+
+  traefik:
+    image: "traefik:v3.2"
+    command: ["--configFile=/etc/traefik/traefik.yml"]
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+    volumes:
+      - traefik_static:/etc/traefik
+      - traefik_dynamic:/etc/traefik/dynamic
+      - traefik_acme:/etc/traefik/acme
+    networks:
+      - platform_internal
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+
+networks:
+  platform_internal:
+    external: true
+
+volumes:
+  postgres_data:
+  # registry_data lives with the standalone registry container (install.sh), not here.
+  openploy_builds:
+  openploy_stacks:
+  # external: install.sh already creates this volume and writes the real
+  # traefik.yml into it before the stack ever deploys - without external:true
+  # here, Swarm creates its own separate (empty) volume of the same name
+  # instead of using the one that's already populated.
+  traefik_static:
+    external: true
+  traefik_dynamic:
+  traefik_acme:
+
+secrets:
+  postgres_password:
+    external: true
+  openploy_master_key:
+    external: true

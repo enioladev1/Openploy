@@ -1,0 +1,1 @@
+ALTER TABLE "backup_storage_configs" DROP COLUMN "account_id";
