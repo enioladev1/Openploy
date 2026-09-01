@@ -189,6 +189,30 @@ services:
     normalizeEnvironmentBooleans(doc);
     expect(doc.services!.web!.environment).toEqual(["DEBUG=false"]);
   });
+
+  it("round-trips a JSON-object environment value (e.g. a ${VAR:-{...}} default) back to its literal string form", () => {
+    const doc = parseComposeYaml(`
+services:
+  web:
+    image: nginx:latest
+    environment:
+      JWKS: {"keys":[]}
+`);
+    normalizeEnvironmentBooleans(doc);
+    expect(doc.services!.web!.environment).toEqual({ JWKS: '{"keys":[]}' });
+  });
+
+  it("round-trips a JSON-array environment value back to its literal string form", () => {
+    const doc = parseComposeYaml(`
+services:
+  web:
+    image: nginx:latest
+    environment:
+      ALLOWED_ORIGINS: ["a.com","b.com"]
+`);
+    normalizeEnvironmentBooleans(doc);
+    expect(doc.services!.web!.environment).toEqual({ ALLOWED_ORIGINS: '["a.com","b.com"]' });
+  });
 });
 
 describe("normalizeDependsOn", () => {

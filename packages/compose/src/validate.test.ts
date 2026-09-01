@@ -19,6 +19,17 @@ services:
     expect(result.errors).toEqual([]);
   });
 
+  it("accepts the standard top-level name: field", () => {
+    const result = validate(`
+name: supabase
+services:
+  web:
+    image: nginx:latest
+`);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
   it("rejects privileged: true", () => {
     const result = validate(`
 services:

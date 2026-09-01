@@ -61,20 +61,39 @@ function coerceBooleansInPlace(obj: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === "boolean") {
       obj[key] = String(value);
-    } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-      coerceBooleansInPlace(value as Record<string, unknown>);
+    } else if (Array.isArray(value)) {
+      // A real environment value is always a flat scalar - an array here can
+      // only be a value that *looks* like JSON (e.g. a `${VAR:-[1,2,3]}`
+      // default) parsing as a YAML flow sequence instead of the literal
+      // string it was meant to be. Round-trip it back to that string.
+      obj[key] = JSON.stringify(value);
+    } else if (value !== null && typeof value === "object") {
+      if (key === "<<") {
+        // A YAML merge-key mixin (<<: *anchor) - a legitimate nested mapping
+        // to recurse into, not a literal value to stringify.
+        coerceBooleansInPlace(value as Record<string, unknown>);
+      } else {
+        // Same reasoning as the array case above, but for a `${VAR:-{"keys":[]}}`-
+        // style JSON-object default (e.g. Supabase's self-hosted compose file).
+        obj[key] = JSON.stringify(value);
+      }
     }
   }
 }
 
 /**
- * Compose's schema forbids bare booleans as `environment:` values ("must be
- * a string, number or null") even though a container env var is always a
- * string anyway - `docker compose` tolerates it, `docker stack deploy` does
- * not. Real compose files commonly produce one via `${VAR:-false}`-style
- * defaults. Mutates nested objects in place (rather than replacing them) so
- * an environment value merged in via a YAML anchor/`<<:` keeps the same
- * object identity - replacing it would break the anchor on re-serialization.
+ * Compose's schema forbids bare booleans, objects, and arrays as
+ * `environment:` values ("must be a string, number or null") even though a
+ * container env var is always a string anyway - `docker compose` tolerates
+ * it, `docker stack deploy` does not. Real compose files commonly produce a
+ * bare boolean via `${VAR:-false}`-style defaults, and a bare object/array
+ * via a JSON-shaped default like `${VAR:-{"keys":[]}}` (interpolateComposeVariables
+ * resolves that to literal `{"keys":[]}` text, which the YAML parser then
+ * correctly reads back as a real nested mapping, not the string it's meant
+ * to be as an env var). Mutates nested objects in place (rather than
+ * replacing them) so an environment value merged in via a YAML anchor/`<<:`
+ * keeps the same object identity - replacing it would break the anchor on
+ * re-serialization.
  */
 export function normalizeEnvironmentBooleans(doc: ComposeDocument): void {
   for (const service of Object.values(doc.services ?? {})) {

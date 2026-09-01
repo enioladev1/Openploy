@@ -9,7 +9,7 @@ export function slugify(name: string): string {
 }
 
 /**
- * Dokploy-style instant domain: <service-slug>-<random>-<ip-dashed>.nip.io.
+ * Openploy-style instant domain: <service-slug>-<random>-<ip-dashed>.nip.io.
  * nip.io resolves that literally (no DNS record to create), and since it
  * points at this server's real public IP, Traefik's normal HTTP-01 flow
  * still works for the TLS cert - this isn't a special case, just a
