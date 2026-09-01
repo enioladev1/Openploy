@@ -81,4 +81,28 @@ services:
     expect(result.yaml).toBe(raw);
     expect(result.missingVariables).toEqual([]);
   });
+
+  it("resolves a nested ${VAR:-${OTHER}} default without truncating on the inner variable's closing brace", () => {
+    const result = interpolateComposeVariables("secret: ${JWT_JWKS:-${JWT_SECRET}}", { JWT_SECRET: "shh" });
+    expect(result.yaml).toBe("secret: shh");
+    expect(result.missingVariables).toEqual([]);
+  });
+
+  it("resolves a literal JSON default containing braces without truncating early", () => {
+    const result = interpolateComposeVariables('jwks: ${JWT_JWKS:-{"keys":[]}}', {});
+    expect(result.yaml).toBe('jwks: {"keys":[]}');
+    expect(result.missingVariables).toEqual([]);
+  });
+
+  it("prefers an explicitly provided value over a nested-default expression, consuming the whole outer reference", () => {
+    const result = interpolateComposeVariables("secret: ${JWT_JWKS:-${JWT_SECRET}}", { JWT_JWKS: "", JWT_SECRET: "shh" });
+    expect(result.yaml).toBe("secret: ");
+    expect(result.missingVariables).toEqual([]);
+  });
+
+  it("reports the inner variable as missing when a nested default can't be resolved either", () => {
+    const result = interpolateComposeVariables("secret: ${JWT_JWKS:-${JWT_SECRET}}", {});
+    expect(result.yaml).toBe("secret: ${JWT_SECRET}");
+    expect(result.missingVariables).toEqual(["JWT_SECRET"]);
+  });
 });

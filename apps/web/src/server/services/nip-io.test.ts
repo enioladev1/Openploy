@@ -21,7 +21,7 @@ describe("slugify", () => {
 });
 
 describe("buildNipIoHost", () => {
-  it("builds a Dokploy-style <slug>-<random>-<ip-dashed>.nip.io host", () => {
+  it("builds a Openploy-style <slug>-<random>-<ip-dashed>.nip.io host", () => {
     expect(buildNipIoHost("n8n test", "169.58.147.50", "1be8da")).toBe("n8n-test-1be8da-169-58-147-50.nip.io");
   });
 
