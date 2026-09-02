@@ -12,6 +12,7 @@ A self-hosted platform as a service (PaaS) alternative to VERCEL, RAILWAY, RENDE
 - **Applications** - deploy from a GitHub repo (Dockerfile or Heroku buildpacks) or a static file upload, with automatic deploys on push
 - **Databases** - one-click Postgres, MySQL, MariaDB, Redis, ClickHouse, or MongoDB, with scheduled backups to any S3-compatible storage
 - **Compose stacks** - deploy an existing `docker-compose.yml` from a repo or pasted directly
+- **One-click app templates** - pre-configured, ready-to-deploy apps (n8n, phpMyAdmin, Excalidraw, more to come) with the compose file, env vars, and domain already set up
 - **Domains & TLS** - automatic HTTPS via Traefik and Let's Encrypt, or an instant `nip.io` domain with no DNS setup
 - **Environment variables** - per-service, with variables that can reference another service's connection details instead of being typed in
 - **Scheduled tasks** - cron jobs that run inside a service's own container

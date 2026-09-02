@@ -1,6 +1,16 @@
 import "server-only";
 import { and, count, desc, eq, getTableColumns, inArray, isNotNull } from "drizzle-orm";
-import { certificates, databaseServices, deployments, domains, environmentVariables, getOrgScopedProject, projects, services } from "@openploy/db";
+import {
+  certificates,
+  composeServices,
+  databaseServices,
+  deployments,
+  domains,
+  environmentVariables,
+  getOrgScopedProject,
+  projects,
+  services,
+} from "@openploy/db";
 import type { CreateProjectInput, UpdateProjectInput } from "@openploy/shared";
 import { db } from "../db";
 import { ForbiddenError, NotFoundError } from "../errors";
@@ -19,7 +29,7 @@ export async function createProject(organizationId: string, userId: string, inpu
   return project;
 }
 
-/** services is every service in the project, each carrying its engine (for databases) - enough for the project card to render one icon per actual service, not just its type. */
+/** services is every service in the project, each carrying its engine (for databases) and templateId (for a compose service deployed from the template picker) - enough for the project card to render one icon per actual service, not just its type. */
 export async function listProjects(organizationId: string) {
   const projectRows = await db
     .select({ ...getTableColumns(projects), serviceCount: count(services.id) })
@@ -37,9 +47,11 @@ export async function listProjects(organizationId: string) {
       id: services.id,
       type: services.type,
       engine: databaseServices.engine,
+      templateId: composeServices.templateId,
     })
     .from(services)
     .leftJoin(databaseServices, eq(databaseServices.serviceId, services.id))
+    .leftJoin(composeServices, eq(composeServices.serviceId, services.id))
     .where(inArray(services.projectId, projectRows.map((p) => p.id)));
 
   const servicesByProject = new Map<string, typeof serviceRows>();
@@ -69,9 +81,10 @@ export async function listServicesForProject(projectId: string) {
 const IN_FLIGHT_DEPLOYMENT_STATUSES = new Set(["queued", "building", "deploying"]);
 
 /**
- * Same as listServicesForProject, plus isDeploying, domains, and (for
- * database services) engine - everything the project graph card needs
- * beyond the base row, batched per project rather than N+1 per service.
+ * Same as listServicesForProject, plus isDeploying, domains, (for database
+ * services) engine, and (for a compose service deployed from the template
+ * picker) templateId - everything the project graph card needs beyond the
+ * base row, batched per project rather than N+1 per service.
  *
  * isDeploying: runtimeStatus alone can't show an in-progress deploy - it's
  * "unknown" until a service's first deploy ever finishes, and for a redeploy
@@ -87,7 +100,7 @@ export async function listServicesForProjectWithDeployStatus(projectId: string) 
 
   const serviceIds = projectServices.map((s) => s.id);
 
-  const [latestDeployments, domainRows, engineRows] = await Promise.all([
+  const [latestDeployments, domainRows, engineRows, templateRows] = await Promise.all([
     db
       .selectDistinctOn([deployments.serviceId], { serviceId: deployments.serviceId, status: deployments.status })
       .from(deployments)
@@ -111,6 +124,10 @@ export async function listServicesForProjectWithDeployStatus(projectId: string) 
       .select({ serviceId: databaseServices.serviceId, engine: databaseServices.engine })
       .from(databaseServices)
       .where(inArray(databaseServices.serviceId, serviceIds)),
+    db
+      .select({ serviceId: composeServices.serviceId, templateId: composeServices.templateId })
+      .from(composeServices)
+      .where(inArray(composeServices.serviceId, serviceIds)),
   ]);
 
   const inFlightServiceIds = new Set(
@@ -123,12 +140,14 @@ export async function listServicesForProjectWithDeployStatus(projectId: string) 
     domainsByService.set(row.serviceId, list);
   }
   const engineByService = new Map(engineRows.map((row) => [row.serviceId, row.engine]));
+  const templateByService = new Map(templateRows.map((row) => [row.serviceId, row.templateId]));
 
   return projectServices.map((service) => ({
     ...service,
     isDeploying: inFlightServiceIds.has(service.id),
     domains: domainsByService.get(service.id) ?? [],
     engine: engineByService.get(service.id) ?? null,
+    templateId: templateByService.get(service.id) ?? null,
   }));
 }
 
