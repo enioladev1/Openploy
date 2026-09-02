@@ -30,6 +30,7 @@ import {
   StopIcon,
 } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
+import { TEMPLATE_CATALOG } from "@openploy/shared";
 import { trpc } from "@/app/providers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,10 @@ const DATABASE_ENGINE_LOGOS: Record<string, string> = {
   mongodb: "/logos/mongodb.png",
 };
 
+// A compose service deployed from the template picker shows its template's
+// own logo (e.g. n8n's) instead of the generic Compose icon.
+const TEMPLATE_LOGOS: Record<string, string> = Object.fromEntries(TEMPLATE_CATALOG.map((t) => [t.id, t.logo]));
+
 const NODE_WIDTH = 260;
 const NODE_HEIGHT = 150;
 const MAX_VISIBLE_DOMAINS = 2;
@@ -97,6 +102,7 @@ interface ServiceNodeData {
   runtimeStatus: string;
   isDeploying: boolean;
   engine: string | null;
+  templateId: string | null;
   domains: { id: string; host: string; isIssued: boolean }[];
   selected: boolean;
   onToggle: (id: string) => void;
@@ -106,6 +112,7 @@ interface ServiceNodeData {
 function ServiceGraphNode({ data }: NodeProps<Node<ServiceNodeData>>) {
   const Icon = SERVICE_TYPE_ICONS[data.type] ?? SourceCodeIcon;
   const engineLogo = data.type === "database" && data.engine ? DATABASE_ENGINE_LOGOS[data.engine] : undefined;
+  const templateLogo = data.type === "compose" && data.templateId ? TEMPLATE_LOGOS[data.templateId] : undefined;
   // An in-flight deployment always wins over runtimeStatus - that column
   // only updates once a deploy finishes, so mid-deploy it's still "unknown"
   // (first-ever deploy) or stuck showing the previous "running" (a redeploy
@@ -124,8 +131,10 @@ function ServiceGraphNode({ data }: NodeProps<Node<ServiceNodeData>>) {
 
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted">
-            {engineLogo ? (
+          <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted">
+            {templateLogo ? (
+              <Image src={templateLogo} alt={data.templateId ?? ""} width={32} height={32} className="object-cover" />
+            ) : engineLogo ? (
               <Image src={engineLogo} alt={data.engine ?? ""} width={18} height={18} className="object-contain" />
             ) : (
               <HugeiconsIcon icon={Icon} size={16} strokeWidth={2} className="text-muted-foreground" />
@@ -323,6 +332,7 @@ export function ProjectServicesPanel({ projectId }: { projectId: string }) {
             runtimeStatus: service.runtimeStatus,
             isDeploying: service.isDeploying,
             engine: service.engine,
+            templateId: service.templateId,
             domains: service.domains,
             selected: selected.has(service.id),
             onToggle: toggle,

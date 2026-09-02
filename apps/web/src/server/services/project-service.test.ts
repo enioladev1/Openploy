@@ -14,6 +14,7 @@ const state = {
   latestDeployments: [] as { serviceId: string; status: string }[],
   domainRows: [] as { id: string; serviceId: string; host: string; certificateStatus: string | null }[],
   engineRows: [] as { serviceId: string; engine: string }[],
+  templateRows: [] as { serviceId: string; templateId: string }[],
 };
 
 const deleteMock = vi.fn(() => ({ where: vi.fn(async () => undefined) }));
@@ -24,14 +25,18 @@ const selectDistinctOnMock = vi.fn(() => ({
     }),
   }),
 }));
-// domains vs databaseServices are distinguished by a marker property on the
-// stub table object below - a plain mock can't otherwise tell which table a
-// generic .select().from(table).where() call is for.
+// domains vs databaseServices vs composeServices are distinguished by a marker
+// property on the stub table object below - a plain mock can't otherwise tell
+// which table a generic .select().from(table).where() call is for.
 const selectMock = vi.fn(() => ({
   from: (table: { __marker: string }) => {
-    const resolve = async () => (table.__marker === "domains" ? state.domainRows : state.engineRows);
+    const resolve = async () => {
+      if (table.__marker === "domains") return state.domainRows;
+      if (table.__marker === "composeServices") return state.templateRows;
+      return state.engineRows;
+    };
     // Only the domains query chains .leftJoin(certificates, ...) before .where() -
-    // supporting both shapes here keeps one mock usable for both queries.
+    // supporting both shapes here keeps one mock usable for every query.
     return { leftJoin: () => ({ where: resolve }), where: resolve };
   },
 }));
@@ -52,6 +57,7 @@ vi.mock("@openploy/db", () => ({
   domains: { __marker: "domains", id: "id-col", serviceId: "service-id-col", host: "host-col", certificateId: "cert-id-col" },
   certificates: { id: "id-col", status: "status-col" },
   databaseServices: { __marker: "databaseServices", serviceId: "service-id-col", engine: "engine-col" },
+  composeServices: { __marker: "composeServices", serviceId: "service-id-col", templateId: "template-id-col" },
   deployments: { serviceId: "service-id-col", status: "status-col", createdAt: "created-at-col" },
   environmentVariables: { serviceId: "service-id-col", referencesServiceId: "ref-col" },
   getOrgScopedProject: vi.fn(async () => state.project),
@@ -103,6 +109,7 @@ describe("listServicesForProjectWithDeployStatus", () => {
     state.latestDeployments = [];
     state.domainRows = [];
     state.engineRows = [];
+    state.templateRows = [];
     selectDistinctOnMock.mockClear();
     selectMock.mockClear();
   });
@@ -124,18 +131,19 @@ describe("listServicesForProjectWithDeployStatus", () => {
     const result = await listServicesForProjectWithDeployStatus("proj-1");
 
     expect(result).toEqual([
-      { id: "svc-1", isDeploying: true, domains: [], engine: null },
-      { id: "svc-2", isDeploying: false, domains: [], engine: null },
+      { id: "svc-1", isDeploying: true, domains: [], engine: null, templateId: null },
+      { id: "svc-2", isDeploying: false, domains: [], engine: null, templateId: null },
     ]);
   });
 
-  it("attaches each service's domains and, for database services, its engine", async () => {
-    state.projectServices = [{ id: "svc-1" }, { id: "svc-2" }];
+  it("attaches each service's domains, for database services its engine, and for a template-deployed compose service its templateId", async () => {
+    state.projectServices = [{ id: "svc-1" }, { id: "svc-2" }, { id: "svc-3" }];
     state.domainRows = [
       { id: "dom-1", serviceId: "svc-1", host: "app.example.nip.io", certificateStatus: "issued" },
       { id: "dom-2", serviceId: "svc-1", host: "app-alt.example.nip.io", certificateStatus: null },
     ];
     state.engineRows = [{ serviceId: "svc-2", engine: "redis" }];
+    state.templateRows = [{ serviceId: "svc-3", templateId: "n8n" }];
 
     const result = await listServicesForProjectWithDeployStatus("proj-1");
 
@@ -145,8 +153,10 @@ describe("listServicesForProjectWithDeployStatus", () => {
         { id: "dom-2", host: "app-alt.example.nip.io", isIssued: false },
       ],
       engine: null,
+      templateId: null,
     });
-    expect(result.find((s) => s.id === "svc-2")).toMatchObject({ domains: [], engine: "redis" });
+    expect(result.find((s) => s.id === "svc-2")).toMatchObject({ domains: [], engine: "redis", templateId: null });
+    expect(result.find((s) => s.id === "svc-3")).toMatchObject({ domains: [], engine: null, templateId: "n8n" });
   });
 
   it.each(["pending", "failed", null])("treats certificateStatus %s as not issued (never links https to a domain with no working cert)", async (certificateStatus) => {
@@ -179,6 +189,6 @@ describe("listServicesForProjectWithDeployStatus", () => {
 
     const result = await listServicesForProjectWithDeployStatus("proj-1");
 
-    expect(result).toEqual([{ id: "svc-1", isDeploying: false, domains: [], engine: null }]);
+    expect(result).toEqual([{ id: "svc-1", isDeploying: false, domains: [], engine: null, templateId: null }]);
   });
 });

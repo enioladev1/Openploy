@@ -1,0 +1,1 @@
+ALTER TABLE "compose_services" ADD COLUMN "template_id" varchar(50);

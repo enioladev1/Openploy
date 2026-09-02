@@ -2,6 +2,7 @@ import Image from "next/image";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { IconSvgElement } from "@hugeicons/react";
 import { Database02Icon, Folder02Icon, Layers01Icon, SourceCodeIcon } from "@hugeicons/core-free-icons";
+import { TEMPLATE_CATALOG } from "@openploy/shared";
 import { getAuth } from "@/server/get-auth";
 import { groupServiceIcons } from "@/lib/group-service-icons";
 import { listProjects } from "@/server/services/project-service";
@@ -24,6 +25,8 @@ const ENGINE_LOGOS: Record<string, string> = {
   clickhouse: "/logos/clickhouse.png",
   mongodb: "/logos/mongodb.png",
 };
+
+const TEMPLATE_LOGOS: Record<string, string> = Object.fromEntries(TEMPLATE_CATALOG.map((t) => [t.id, t.logo]));
 
 export default async function ProjectsPage() {
   const auth = await getAuth();
@@ -56,12 +59,22 @@ export default async function ProjectsPage() {
                   <HugeiconsIcon icon={Folder02Icon} size={26} strokeWidth={1.5} className="text-foreground/20" />
                 ) : (
                   groupServiceIcons(project.services).map((group) => {
-                    const logo = group.engine ? ENGINE_LOGOS[group.engine] : undefined;
+                    const logo = group.templateId
+                      ? TEMPLATE_LOGOS[group.templateId]
+                      : group.engine
+                        ? ENGINE_LOGOS[group.engine]
+                        : undefined;
                     return (
-                      <div key={group.engine ?? group.type} className="relative shrink-0">
-                        <div className="flex size-11 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-foreground/10">
+                      <div key={group.templateId ?? group.engine ?? group.type} className="relative shrink-0">
+                        <div className="flex size-11 items-center justify-center overflow-hidden rounded-2xl bg-background shadow-sm ring-1 ring-foreground/10">
                           {logo ? (
-                            <Image src={logo} alt={group.engine ?? group.type} width={22} height={22} className="object-contain" />
+                            <Image
+                              src={logo}
+                              alt={group.templateId ?? group.engine ?? group.type}
+                              width={group.templateId ? 44 : 22}
+                              height={group.templateId ? 44 : 22}
+                              className="object-cover"
+                            />
                           ) : (
                             <HugeiconsIcon
                               icon={SERVICE_TYPE_ICONS[group.type] ?? SourceCodeIcon}

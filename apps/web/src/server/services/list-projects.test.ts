@@ -31,6 +31,7 @@ vi.mock("@openploy/db", () => ({
   projects: { id: "id-col", organizationId: "org-id-col", createdAt: "created-at-col" },
   services: { id: "id-col", projectId: "project-id-col", type: "type-col" },
   databaseServices: { serviceId: "service-id-col", engine: "engine-col" },
+  composeServices: { serviceId: "compose-service-id-col", templateId: "template-id-col" },
 }));
 
 const { listProjects } = await import("./project-service");
@@ -49,25 +50,25 @@ describe("listProjects", () => {
     expect(selectMock).toHaveBeenCalledTimes(1);
   });
 
-  it("attaches every service (with its engine) present in each project", async () => {
+  it("attaches every service (with its engine/templateId) present in each project", async () => {
     state.projectRows = [
       { id: "proj-1", name: "A", serviceCount: 2 },
       { id: "proj-2", name: "B", serviceCount: 1 },
     ];
     state.serviceRows = [
-      { projectId: "proj-1", id: "svc-1", type: "application", engine: null },
-      { projectId: "proj-1", id: "svc-2", type: "database", engine: "redis" },
-      { projectId: "proj-2", id: "svc-3", type: "database", engine: "mysql" },
+      { projectId: "proj-1", id: "svc-1", type: "application", engine: null, templateId: null },
+      { projectId: "proj-1", id: "svc-2", type: "database", engine: "redis", templateId: null },
+      { projectId: "proj-2", id: "svc-3", type: "compose", engine: null, templateId: "n8n" },
     ];
 
     const result = await listProjects("org-1");
 
     expect(result.find((p) => p.id === "proj-1")?.services).toEqual([
-      { projectId: "proj-1", id: "svc-1", type: "application", engine: null },
-      { projectId: "proj-1", id: "svc-2", type: "database", engine: "redis" },
+      { projectId: "proj-1", id: "svc-1", type: "application", engine: null, templateId: null },
+      { projectId: "proj-1", id: "svc-2", type: "database", engine: "redis", templateId: null },
     ]);
     expect(result.find((p) => p.id === "proj-2")?.services).toEqual([
-      { projectId: "proj-2", id: "svc-3", type: "database", engine: "mysql" },
+      { projectId: "proj-2", id: "svc-3", type: "compose", engine: null, templateId: "n8n" },
     ]);
   });
 

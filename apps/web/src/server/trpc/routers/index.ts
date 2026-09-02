@@ -18,12 +18,14 @@ import { projectsRouter } from "./projects";
 import { serversRouter } from "./servers";
 import { servicesRouter } from "./services";
 import { systemStatsRouter } from "./system-stats";
+import { templatesRouter } from "./templates";
 import { usersRouter } from "./users";
 
 export const appRouter = router({
   projects: projectsRouter,
   github: githubRouter,
   services: servicesRouter,
+  templates: templatesRouter,
   envVars: envVarsRouter,
   domains: domainsRouter,
   deployments: deploymentsRouter,

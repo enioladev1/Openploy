@@ -8,5 +8,6 @@ export * from "./jobs";
 export * from "./notifications";
 export * from "./platform";
 export * from "./projects";
+export * from "./templates";
 export * from "./services";
 export * from "./users";

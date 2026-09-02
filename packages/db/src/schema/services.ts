@@ -114,4 +114,12 @@ export const composeServices = pgTable("compose_services", {
   // re-parsed/validated/re-serialized at deploy time (see packages/compose).
   rawComposeContent: text("raw_compose_content"),
   exposedInnerService: varchar("exposed_inner_service", { length: 200 }),
+  // Null for a plain user-authored compose service - set once, at creation,
+  // for one deployed from the pre-installed template picker (see
+  // template-service.ts). Purely cosmetic (which logo the graph/project card
+  // shows) - never read by the deploy pipeline itself, which only ever
+  // touches rawComposeContent. A plain varchar, not an FK/enum against the
+  // shared TemplateId union, since packages/db doesn't depend on
+  // packages/shared - validated at the application layer instead.
+  templateId: varchar("template_id", { length: 50 }),
 });

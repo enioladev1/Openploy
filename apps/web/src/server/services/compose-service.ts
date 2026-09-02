@@ -5,10 +5,15 @@ import type { ComposeSourceInput, CreateServiceShellInput } from "@openploy/shar
 import { db } from "../db";
 import { ForbiddenError, NotFoundError } from "../errors";
 
+// templateId is never part of the public tRPC input - only template-service.ts's
+// deployTemplate passes it, to record which pre-installed template (if any)
+// this compose service came from, purely for the graph/project card to show
+// the template's own logo instead of the generic Compose icon.
 export async function createComposeServiceShell(
   organizationId: string,
   userId: string,
   input: CreateServiceShellInput,
+  templateId?: string,
 ) {
   const project = await getOrgScopedProject(db, organizationId, input.projectId);
   if (!project) throw new NotFoundError("Project not found");
@@ -20,7 +25,7 @@ export async function createComposeServiceShell(
       .returning();
     if (!service) throw new Error("Failed to create service");
 
-    await tx.insert(composeServices).values({ serviceId: service.id });
+    await tx.insert(composeServices).values({ serviceId: service.id, templateId });
 
     return service;
   });
